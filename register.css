@@ -1,0 +1,141 @@
+package com.example.demo;
+
+import jakarta.persistence.*;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Optional;
+
+// Main Application
+@SpringBootApplication
+public class DemoApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(DemoApplication.class, args);
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+}
+
+// Entity Class
+@Entity
+@Table(name = "users")
+class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String firstName;
+    private String lastName;
+    private String email;
+    private String password;
+
+    // Getters and Setters
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+
+    public String getLastName() { return lastName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+}
+
+// Repository Interface
+interface UserRepository extends JpaRepository<User, Long> {
+    Optional<User> findByEmail(String email);
+}
+
+// Controller (with login, sign-up, and homepage logic)
+@Controller
+@RequestMapping("/auth")
+class AuthController {
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    // Show login page
+    @GetMapping("/login")
+    public String showLoginPage() {
+        return "login";
+    }
+
+    // Sign-up Logic
+    @PostMapping("/signUp")
+    public String signUp(@RequestParam String firstName,
+                         @RequestParam String lastName,
+                         @RequestParam String email,
+                         @RequestParam String password,
+                         Model model) {
+
+        // Check if email already exists
+        if (userRepository.findByEmail(email).isPresent()) {
+            model.addAttribute("message", "Email Address Already Exists!");
+            return "login";
+        }
+
+        // Create and save new user
+        User newUser = new User();
+        newUser.setFirstName(firstName);
+        newUser.setLastName(lastName);
+        newUser.setEmail(email);
+        newUser.setPassword(passwordEncoder.encode(password));
+        userRepository.save(newUser);
+
+        model.addAttribute("message", "User Registered Successfully! Please Log In.");
+        return "login";
+    }
+
+    // Sign-in Logic
+    @PostMapping("/signIn")
+    public String signIn(@RequestParam String email,
+                         @RequestParam String password,
+                         HttpSession session,
+                         Model model) {
+
+        Optional<User> user = userRepository.findByEmail(email);
+        if (user.isPresent() && passwordEncoder.matches(password, user.get().getPassword())) {
+            session.setAttribute("email", email);
+            return "redirect:/auth/homepage";
+        } else {
+            model.addAttribute("error", "Invalid Email or Password!");
+            return "login";
+        }
+    }
+
+    // Homepage (protected route)
+    @GetMapping("/homepage")
+    public String homepage(HttpSession session, Model model) {
+        String email = (String) session.getAttribute("email");
+        if (email == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please log in first!");
+        }
+        model.addAttribute("email", email);
+        return "homepage";
+    }
+
+    // Logout
+    @GetMapping("/logout")
+    public String logout(HttpSession session) {
+        session.invalidate();
+        return "redirect:/auth/login";
+    }
+}

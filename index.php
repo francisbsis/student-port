@@ -44,7 +44,7 @@
 
     <div class="container" id="signIn">
         <h1 class="form-title">Student Log In</h1>
-        <form method="post" action="register.php">
+        <form method="post" action="register.js">
           <div class="input-group">
               <i class="fas fa-envelope"></i>
               <input type="number" name="email" id="email" placeholder="Email" required>
