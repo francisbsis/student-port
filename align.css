@@ -1,0 +1,27 @@
+header {
+    text-align: center;
+    padding: 20px;
+    background-color: #c9d6ff;
+    background:linear-gradient(to right,#f5e945,hsl(54, 56%, 79%));
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    justify-content: center; /* Centers items horizontally */
+    padding: 0;
+    margin: 20px 0 0 0;
+    gap: 20px; /* Adds space between items */
+}
+
+nav ul li a {
+    text-decoration: none;
+    color: #fff;
+    padding: 10px 15px;
+    transition: background-color 0.3s;
+}
+
+nav ul li a:hover {
+    background-color: #555;
+    border-radius: 5px;
+}
